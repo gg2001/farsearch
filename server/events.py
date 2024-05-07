@@ -14,6 +14,8 @@ SAMPLE_PER_CLUSTER = 20  # The number of casts to sample per cluster
 RANDOM_STATE = 42  # Random state for reproducibility
 REFRESH_INTERVAL = 24 * (60 * 60)  # How often to refresh the index in seconds
 DATA_FOLDER = "data"  # Folder to store the indexed data
+DATA_FILE_SUFFIX = "-casts.csv"  # Suffix for the data files
+CLUSTERS_FILE = f"{DATA_FOLDER}/clusters.csv"
 COMPLETIONS_TEMPERATURE = 0.4  # Temperature for completions
 
 NULL_RESPONSE = "No theme."
@@ -120,13 +122,17 @@ def latest_index() -> int:
         os.makedirs(DATA_FOLDER)
 
     files = os.listdir(DATA_FOLDER)
-    integers = [int(file.split(".")[0]) for file in files if file.endswith(".csv")]
+    integers = [
+        int(file.split(".")[0].split("-")[0])
+        for file in files
+        if file.endswith(DATA_FILE_SUFFIX)
+    ]
 
     return max(integers) if len(integers) > 0 else 0
 
 
 def write_index(df: pd.DataFrame, timestamp: int):
-    df.to_csv(f"{DATA_FOLDER}/{timestamp}.csv")
+    df.to_csv(f"{DATA_FOLDER}/{timestamp}{DATA_FILE_SUFFIX}")
 
 
 if __name__ == "__main__":
@@ -141,6 +147,11 @@ if __name__ == "__main__":
         action="store_true",
         help="Trigger clustering if not present in DataFrame",
     )
+    parser.add_argument(
+        "--generate",
+        action="store_true",
+        help="Regenerate the cluster summaries and headlines",
+    )
     args = parser.parse_args()
 
     timestamp = latest_index()
@@ -153,13 +164,13 @@ if __name__ == "__main__":
         casts = fetch_casts(FETCH_DAYS)
         df = casts_df(casts)
         write_index(df, now)
-        print(f"Wrote {DATA_FOLDER}/{now}.csv with {len(df)} casts.")
+        print(f"Wrote {DATA_FOLDER}/{now}{DATA_FILE_SUFFIX} with {len(df)} casts.")
         timestamp = now
     else:
         print(
-            f"Loading data from {DATA_FOLDER}/{timestamp}.csv ({now - timestamp}s ago)."
+            f"Loading data from {DATA_FOLDER}/{timestamp}{DATA_FILE_SUFFIX} ({now - timestamp}s ago)."
         )
-        df = pd.read_csv(f"{DATA_FOLDER}/{timestamp}.csv")
+        df = pd.read_csv(f"{DATA_FOLDER}/{timestamp}{DATA_FILE_SUFFIX}")
         df["embedding"] = df.embedding.apply(literal_eval)
 
     # Embed the casts
@@ -167,14 +178,23 @@ if __name__ == "__main__":
         print(f"Embedding {len(df)} casts...")
         embed_casts(df)
         write_index(df, timestamp)
-        print(f"Wrote embeddings to {DATA_FOLDER}/{timestamp}.csv.")
+        print(f"Wrote embeddings to {DATA_FOLDER}/{timestamp}{DATA_FILE_SUFFIX}.")
 
     # Group the casts into clusters
     if args.clusters or "cluster" not in df.columns:
         print(f"Fitting {len(df)} casts into {CLUSTERS} clusters...")
         fit_clusters(df)
         write_index(df, timestamp)
-        print(f"Wrote clusters to {DATA_FOLDER}/{timestamp}.csv.")
+        print(f"Wrote clusters to {DATA_FOLDER}/{timestamp}{DATA_FILE_SUFFIX}.")
 
-    clusters_df = get_clusters(df)
+    # Generate cluster summaries
+    if not args.generate and os.path.exists(CLUSTERS_FILE):
+        print(f"Loading clusters from {CLUSTERS_FILE}.")
+        clusters_df = pd.read_csv(CLUSTERS_FILE)
+    else:
+        print("Generating new clusters data.")
+        clusters_df = get_clusters(df)
+        clusters_df.to_csv(CLUSTERS_FILE, index=False)
+        print(f"Wrote clusters to {CLUSTERS_FILE}.")
+
     print(clusters_df.head())
