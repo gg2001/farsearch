@@ -2,13 +2,14 @@ import os
 import time
 import argparse
 import numpy as np
+from ast import literal_eval
 from sklearn.cluster import KMeans
 import pandas as pd
 from utils import client, vlite_embed, fetch_casts, casts_df
 
 
 FETCH_DAYS = 14  # How far back we want to index the casts
-CLUSTERS = 10  # How many clusters to group the casts into
+CLUSTERS = 20  # How many clusters to group the casts into
 SAMPLE_PER_CLUSTER = 10  # The number of casts to sample per cluster
 RANDOM_STATE = 42  # Random state for reproducibility
 REFRESH_INTERVAL = 24 * (60 * 60)  # How often to refresh the index in seconds
@@ -24,6 +25,9 @@ def embed_casts(df: pd.DataFrame):
 
 
 def fit_clusters(df: pd.DataFrame):
+    # Filter out rows where text is null and directly modify the DataFrame
+    df.dropna(subset=["text"], inplace=True)
+
     # Fit the embeddings to a K-Means model and group the casts into clusters
     kmeans = KMeans(n_clusters=CLUSTERS, init="k-means++", random_state=RANDOM_STATE)
     matrix = np.vstack(df["embedding"].values)
@@ -79,6 +83,7 @@ if __name__ == "__main__":
             f"Loading data from {DATA_FOLDER}/{timestamp}.csv ({now - timestamp}s ago)."
         )
         df = pd.read_csv(f"{DATA_FOLDER}/{timestamp}.csv")
+        df["embedding"] = df.embedding.apply(literal_eval)
 
     # Embed the casts
     if args.embed or "embedding" not in df.columns:
