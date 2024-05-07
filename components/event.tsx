@@ -10,7 +10,8 @@ export default function Event({
 			<p className="mt-2 text-sm text-gray">{description}</p>
 			<div className="mt-4">
 				<span className="text-xs font-semibold text-gray">{time}</span>
-				<span className="text-xs font-semibold text-gray ml-4">{category}</span>
+				<span className="text-xs font-semibold text-gray ml-1 mr-1">·</span>
+				<span className="text-xs font-semibold text-gray">{category}</span>
 			</div>
 		</div>
 	);
