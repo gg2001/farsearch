@@ -9,11 +9,20 @@ from utils import client, vlite_embed, fetch_casts, casts_df
 
 
 FETCH_DAYS = 14  # How far back we want to index the casts
-CLUSTERS = 20  # How many clusters to group the casts into
-SAMPLE_PER_CLUSTER = 10  # The number of casts to sample per cluster
+CLUSTERS = 50  # How many clusters to group the casts into
+SAMPLE_PER_CLUSTER = 20  # The number of casts to sample per cluster
 RANDOM_STATE = 42  # Random state for reproducibility
 REFRESH_INTERVAL = 24 * (60 * 60)  # How often to refresh the index in seconds
 DATA_FOLDER = "data"  # Folder to store the indexed data
+COMPLETIONS_TEMPERATURE = 0.4  # Temperature for completions
+
+NULL_RESPONSE = "No theme."
+CLUSTERING_PROMPT = f"""Are the posts above related to a specific topic or event? If so, provide a summary of the topic, try to be as specific as possible.
+
+If not (e.g. the posts are vague and general) please type '{NULL_RESPONSE}'
+Example event summary: 'In a surprising twist, OpenAI has recently introduced two new AI models, 'im-a-good-gpt2-chatbot' and 'im-also-a-good-gpt2-chatbot', sparking excitement and speculation among users on the LMSYS platform. These models have shown promising results, with some users claiming they are stronger in reasoning and more capable than previous iterations. However, the debate continues on whether these models are indeed the highly anticipated GPT-5.'
+Don't mention 'the posts' in your response, just give the summary."""
+HEADLINE_PROMPT = "Write a headline (maximum 12 words) for the following summary:"
 
 
 def embed_casts(df: pd.DataFrame):
@@ -36,6 +45,56 @@ def fit_clusters(df: pd.DataFrame):
 
     # Assign cluster labels to the 'cluster' column
     df.loc[:, "cluster"] = labels
+
+
+def get_clusters(df: pd.DataFrame) -> list[tuple[int, str, str]]:
+    clusters = []
+
+    for i in range(CLUSTERS):
+        cluster_df = df[df.cluster == i]
+        sample_size = min(len(cluster_df), SAMPLE_PER_CLUSTER)
+        if sample_size == 0:
+            continue
+
+        casts = "\n".join(
+            cluster_df.text.sample(
+                sample_size, replace=False, random_state=RANDOM_STATE
+            ).values
+        )
+
+        messages = [
+            {
+                "role": "user",
+                "content": f'Posts:\n"""\n{casts}\n\n{CLUSTERING_PROMPT}\n\n"""\n\nSummarize:',
+            }
+        ]
+
+        response = client.chat.completions.create(
+            model="gpt-4",
+            messages=messages,
+            temperature=COMPLETIONS_TEMPERATURE,
+        )
+        summary = response.choices[0].message.content.replace("\n", "")
+        if summary == NULL_RESPONSE:
+            continue
+
+        messages = [
+            {
+                "role": "user",
+                "content": f'{HEADLINE_PROMPT}\n\n"""\n{summary}',
+            }
+        ]
+
+        response = client.chat.completions.create(
+            model="gpt-4",
+            messages=messages,
+            temperature=COMPLETIONS_TEMPERATURE,
+        )
+        headline = response.choices[0].message.content.replace("\n", "")
+
+        clusters.append((i, headline, summary))
+
+    return clusters
 
 
 def latest_index() -> int:
@@ -99,41 +158,5 @@ if __name__ == "__main__":
         write_index(df, timestamp)
         print(f"Wrote clusters to {DATA_FOLDER}/{timestamp}.csv.")
 
-    print(df.head())
-
-    for i in range(CLUSTERS):
-        print(f"Cluster {i} Theme:", end=" ")
-
-        cluster_df = df[df.cluster == i]
-        sample_size = min(len(cluster_df), SAMPLE_PER_CLUSTER)
-        reviews = "\n".join(
-            cluster_df.text.sample(
-                sample_size, replace=False, random_state=RANDOM_STATE
-            ).values
-        )
-
-        messages = [
-            {
-                "role": "user",
-                "content": f'What do the following tweets have in common? Try to be as specific as possible.\n\nUser tweets:\n"""\n{reviews}\n"""\n\nTheme:',
-            }
-        ]
-
-        response = client.chat.completions.create(
-            model="gpt-4",
-            messages=messages,
-            temperature=0,
-            max_tokens=64,
-            top_p=1,
-            frequency_penalty=0,
-            presence_penalty=0,
-        )
-        print(response.choices[0].message.content.replace("\n", ""))
-
-        sample_cluster_rows = df[df.cluster == i].sample(
-            SAMPLE_PER_CLUSTER, replace=True, random_state=42
-        )
-        for j in range(SAMPLE_PER_CLUSTER):
-            print(sample_cluster_rows.text.str[:70].values[j])
-
-        print("-" * 100)
+    clusters = get_clusters(df)
+    print(clusters)
