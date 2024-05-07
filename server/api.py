@@ -15,5 +15,7 @@ async def read_clusters():
 
 
 @app.get("/cluster/{cluster_id}")
-def read_cluster(cluster_id: int):
-    return df[df.cluster == cluster_id].to_dict(orient="records")
+def read_cluster(cluster_id: int, start: int = 0):
+    cluster_df = df[df.cluster == cluster_id]
+    filtered_cluster_df = cluster_df[["hash", "fid", "timestamp", "text"]]
+    return filtered_cluster_df.iloc[start : start + 20].to_dict(orient="records")

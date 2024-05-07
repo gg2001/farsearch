@@ -1,8 +1,9 @@
-import Event from "@/components/event";
-import { getClusters } from "@/app/lib/data";
+import { FarcasterEmbed } from "react-farcaster-embed";
+import "react-farcaster-embed/dist/styles.css";
+import { getCasts } from "@/app/lib/data";
 
-export default async function Home() {
-	const data = await getClusters();
+export default async function Page({ params }: { params: { id: string } }) {
+	const data = await getCasts(params.id, 0);
 
 	return (
 		<main className="flex min-h-screen flex-col items-center justify-between">
@@ -11,15 +12,9 @@ export default async function Home() {
 					<h2 className="text-xl text-white font-bold">Explore</h2>
 				</div>
 
-				<div>
-					{data.map((cluster) => (
-						<Event
-							key={cluster.cluster}
-							title={cluster.summary}
-							description={cluster.headline}
-							time="2 hours ago"
-							category="Technology"
-						/>
+				<div className="text-white">
+					{data.map((cast) => (
+						<FarcasterEmbed key={cast.hash} username="dwr" hash="0x48d47343" />
 					))}
 				</div>
 			</div>
