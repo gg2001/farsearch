@@ -22,6 +22,8 @@ def embed_casts(df: pd.DataFrame):
     # Apply embedding to the 'text' column and store it in a new 'embedding' column
     df.loc[:, "embedding"] = df["text"].apply(vlite_embed)
 
+
+def fit_clusters(df: pd.DataFrame):
     # Fit the embeddings to a K-Means model and group the casts into clusters
     kmeans = KMeans(n_clusters=CLUSTERS, init="k-means++", random_state=RANDOM_STATE)
     matrix = np.vstack(df["embedding"].values)
@@ -42,6 +44,10 @@ def latest_index() -> int:
     return max(integers) if len(integers) > 0 else 0
 
 
+def write_index(df: pd.DataFrame, timestamp: int):
+    df.to_csv(f"{DATA_FOLDER}/{timestamp}.csv")
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Process embedding option.")
     parser.add_argument(
@@ -49,19 +55,23 @@ if __name__ == "__main__":
         action="store_true",
         help="Trigger embedding if not present in DataFrame",
     )
+    parser.add_argument(
+        "--clusters",
+        action="store_true",
+        help="Trigger clustering if not present in DataFrame",
+    )
     args = parser.parse_args()
 
     timestamp = latest_index()
     now = int(time.time())
 
     df: pd.DataFrame = None
-
     if timestamp == 0 or now - timestamp > REFRESH_INTERVAL:
         # Load the casts from the database
         print("Fetching casts...")
         casts = fetch_casts(FETCH_DAYS)
         df = casts_df(casts)
-        df.to_csv(f"{DATA_FOLDER}/{now}.csv")
+        write_index(df, now)
         print(f"Wrote {DATA_FOLDER}/{now}.csv with {len(df)} casts.")
         timestamp = now
     else:
@@ -70,12 +80,19 @@ if __name__ == "__main__":
         )
         df = pd.read_csv(f"{DATA_FOLDER}/{timestamp}.csv")
 
-    # Embed the casts and group them into clusters
+    # Embed the casts
     if args.embed or "embedding" not in df.columns:
         print(f"Embedding {len(df)} casts...")
         embed_casts(df)
-        df.to_csv(f"{DATA_FOLDER}/{timestamp}.csv")
+        write_index(df, timestamp)
         print(f"Wrote embeddings to {DATA_FOLDER}/{timestamp}.csv.")
+
+    # Group the casts into clusters
+    if args.clusters or "cluster" not in df.columns:
+        print(f"Fitting {len(df)} casts into {CLUSTERS} clusters...")
+        fit_clusters(df)
+        write_index(df, timestamp)
+        print(f"Wrote clusters to {DATA_FOLDER}/{timestamp}.csv.")
 
     print(df.head())
 

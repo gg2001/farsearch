@@ -10,6 +10,7 @@ const config: Config = {
     colors: {
       background: "#17101f",
       white: "#ffffff",
+      gray: "#9fa3af",
     },
     extend: {
       fontFamily: {
