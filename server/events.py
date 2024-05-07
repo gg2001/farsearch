@@ -1,10 +1,10 @@
 import os
 import time
 import argparse
-import numpy as np
 from ast import literal_eval
-from sklearn.cluster import KMeans
+import numpy as np
 import pandas as pd
+from sklearn.cluster import KMeans
 from utils import client, vlite_embed, fetch_casts, casts_df
 
 
@@ -59,6 +59,7 @@ def get_clusters(df: pd.DataFrame) -> pd.DataFrame:
         if sample_size == 0:
             continue
 
+        # Generate the cluster summary
         casts = "\n".join(
             cluster_df.text.sample(
                 sample_size, replace=False, random_state=RANDOM_STATE
@@ -81,6 +82,7 @@ def get_clusters(df: pd.DataFrame) -> pd.DataFrame:
         if summary == NULL_RESPONSE:
             continue
 
+        # Generate the cluster headline
         messages = [
             {
                 "role": "user",
@@ -95,6 +97,7 @@ def get_clusters(df: pd.DataFrame) -> pd.DataFrame:
         )
         headline = response.choices[0].message.content.replace("\n", "")
 
+        # Generate the cluster category
         messages = [
             {
                 "role": "user",
@@ -113,7 +116,7 @@ def get_clusters(df: pd.DataFrame) -> pd.DataFrame:
 
     return pd.DataFrame(
         clusters,
-        columns=["cluster", "summary", "headline", "category"],
+        columns=["cluster", "headline", "summary", "category"],
     )
 
 
@@ -131,8 +134,16 @@ def latest_index() -> int:
     return max(integers) if len(integers) > 0 else 0
 
 
+def load_index(timestamp: int) -> pd.DataFrame:
+    return pd.read_csv(f"{DATA_FOLDER}/{timestamp}{DATA_FILE_SUFFIX}")
+
+
 def write_index(df: pd.DataFrame, timestamp: int):
     df.to_csv(f"{DATA_FOLDER}/{timestamp}{DATA_FILE_SUFFIX}")
+
+
+def load_clusters() -> pd.DataFrame:
+    return pd.read_csv(CLUSTERS_FILE)
 
 
 if __name__ == "__main__":
@@ -170,7 +181,7 @@ if __name__ == "__main__":
         print(
             f"Loading data from {DATA_FOLDER}/{timestamp}{DATA_FILE_SUFFIX} ({now - timestamp}s ago)."
         )
-        df = pd.read_csv(f"{DATA_FOLDER}/{timestamp}{DATA_FILE_SUFFIX}")
+        df = load_index(timestamp)
         df["embedding"] = df.embedding.apply(literal_eval)
 
     # Embed the casts
@@ -190,7 +201,7 @@ if __name__ == "__main__":
     # Generate cluster summaries
     if not args.generate and os.path.exists(CLUSTERS_FILE):
         print(f"Loading clusters from {CLUSTERS_FILE}.")
-        clusters_df = pd.read_csv(CLUSTERS_FILE)
+        clusters_df = load_clusters()
     else:
         print("Generating new clusters data.")
         clusters_df = get_clusters(df)

@@ -1,6 +1,24 @@
 import Event from "@/components/event";
 
-export default function Home() {
+interface Cluster {
+	cluster: number;
+	summary: string;
+	headline: string;
+}
+
+async function getClusters(): Promise<Cluster[]> {
+	const res = await fetch("http://127.0.0.1:8000/clusters/");
+
+	if (!res.ok) {
+		throw new Error("Failed to fetch data");
+	}
+
+	return res.json();
+}
+
+export default async function Home() {
+	const data = await getClusters();
+
 	return (
 		<main className="flex min-h-screen flex-col items-center justify-between">
 			<div className="flex flex-col min-h-screen max-w-xl overflow-y-auto border-border border-[0.5px]">
@@ -9,55 +27,15 @@ export default function Home() {
 				</div>
 
 				<div>
-					<Event
-						title="OpenAI's 'im-a-good-gpt2-chatbot' & 'im-also-a-good-gpt2-chatbot' Debut"
-						time="2 hours ago"
-						description="In a surprising move, OpenAI unveiled two new GPT-2 chatbot models, sparking excitement and speculation in the AI community ..."
-						category="Technology"
-						image="https://imagedelivery.net/BXluQx4ige9GuW0Ia56BHw/b5233fe1-1724-4f7a-abfb-93d88e278600/original"
-					/>
-					<Event
-						title="OpenAI's 'im-a-good-gpt2-chatbot' & 'im-also-a-good-gpt2-chatbot' Debut"
-						time="2 hours ago"
-						description="In a surprising move, OpenAI unveiled two new GPT-2 chatbot models, sparking excitement and speculation in the AI community ..."
-						category="Technology"
-					/>
-					<Event
-						title="OpenAI's 'im-a-good-gpt2-chatbot' & 'im-also-a-good-gpt2-chatbot' Debut"
-						time="2 hours ago"
-						description="In a surprising move, OpenAI unveiled two new GPT-2 chatbot models, sparking excitement and speculation in the AI community ..."
-						category="Technology"
-					/>
-					<Event
-						title="OpenAI's 'im-a-good-gpt2-chatbot' & 'im-also-a-good-gpt2-chatbot' Debut"
-						time="2 hours ago"
-						description="In a surprising move, OpenAI unveiled two new GPT-2 chatbot models, sparking excitement and speculation in the AI community ..."
-						category="Technology"
-					/>
-					<Event
-						title="OpenAI's 'im-a-good-gpt2-chatbot' & 'im-also-a-good-gpt2-chatbot' Debut"
-						time="2 hours ago"
-						description="In a surprising move, OpenAI unveiled two new GPT-2 chatbot models, sparking excitement and speculation in the AI community ..."
-						category="Technology"
-					/>
-					<Event
-						title="OpenAI's 'im-a-good-gpt2-chatbot' & 'im-also-a-good-gpt2-chatbot' Debut"
-						time="2 hours ago"
-						description="In a surprising move, OpenAI unveiled two new GPT-2 chatbot models, sparking excitement and speculation in the AI community ..."
-						category="Technology"
-					/>
-					<Event
-						title="OpenAI's 'im-a-good-gpt2-chatbot' & 'im-also-a-good-gpt2-chatbot' Debut"
-						time="2 hours ago"
-						description="In a surprising move, OpenAI unveiled two new GPT-2 chatbot models, sparking excitement and speculation in the AI community ..."
-						category="Technology"
-					/>
-					<Event
-						title="OpenAI's 'im-a-good-gpt2-chatbot' & 'im-also-a-good-gpt2-chatbot' Debut"
-						time="2 hours ago"
-						description="In a surprising move, OpenAI unveiled two new GPT-2 chatbot models, sparking excitement and speculation in the AI community ..."
-						category="Technology"
-					/>
+					{data.map((cluster) => (
+						<Event
+							key={cluster.cluster}
+							title={cluster.summary}
+							description={cluster.headline}
+							time="2 hours ago"
+							category="Technology"
+						/>
+					))}
 				</div>
 			</div>
 		</main>
