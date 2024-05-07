@@ -23,6 +23,7 @@ If not (e.g. the posts are vague and general) please type '{NULL_RESPONSE}'
 Example event summary: 'In a surprising twist, OpenAI has recently introduced two new AI models, 'im-a-good-gpt2-chatbot' and 'im-also-a-good-gpt2-chatbot', sparking excitement and speculation among users on the LMSYS platform. These models have shown promising results, with some users claiming they are stronger in reasoning and more capable than previous iterations. However, the debate continues on whether these models are indeed the highly anticipated GPT-5.'
 Don't mention 'the posts' in your response, just give the summary."""
 HEADLINE_PROMPT = "Write a headline (maximum 12 words) for the following summary:"
+CATEGORIZE_PROMPT = "Which of these categoriies does the following summary best fit into? Technology, Finance, Cryptocurrency, Business, Politics, Design"
 
 
 def embed_casts(df: pd.DataFrame):
@@ -47,8 +48,8 @@ def fit_clusters(df: pd.DataFrame):
     df.loc[:, "cluster"] = labels
 
 
-def get_clusters(df: pd.DataFrame) -> list[tuple[int, str, str]]:
-    clusters = []
+def get_clusters(df: pd.DataFrame) -> pd.DataFrame:
+    clusters: list[tuple[int, str, str, str]] = []
 
     for i in range(CLUSTERS):
         cluster_df = df[df.cluster == i]
@@ -92,9 +93,26 @@ def get_clusters(df: pd.DataFrame) -> list[tuple[int, str, str]]:
         )
         headline = response.choices[0].message.content.replace("\n", "")
 
-        clusters.append((i, headline, summary))
+        messages = [
+            {
+                "role": "user",
+                "content": f'{CATEGORIZE_PROMPT}\n\n"""\n{summary}',
+            }
+        ]
 
-    return clusters
+        response = client.chat.completions.create(
+            model="gpt-4",
+            messages=messages,
+            temperature=COMPLETIONS_TEMPERATURE,
+        )
+        category = response.choices[0].message.content.replace("\n", "")
+
+        clusters.append((i, headline, summary, category))
+
+    return pd.DataFrame(
+        clusters,
+        columns=["cluster", "summary", "headline", "category"],
+    )
 
 
 def latest_index() -> int:
@@ -158,5 +176,5 @@ if __name__ == "__main__":
         write_index(df, timestamp)
         print(f"Wrote clusters to {DATA_FOLDER}/{timestamp}.csv.")
 
-    clusters = get_clusters(df)
-    print(clusters)
+    clusters_df = get_clusters(df)
+    print(clusters_df.head())
