@@ -4,7 +4,7 @@ import argparse
 import numpy as np
 from sklearn.cluster import KMeans
 import pandas as pd
-from utils import vlite_embed, fetch_casts, casts_df
+from utils import client, vlite_embed, fetch_casts, casts_df
 
 
 FETCH_DAYS = 14  # How far back we want to index the casts
@@ -27,45 +27,6 @@ def embed_casts(df: pd.DataFrame):
     kmeans.fit(matrix)
     labels = kmeans.labels_
     df["cluster"] = labels
-
-
-# Reading a review which belong to each group.
-# rev_per_cluster = 10
-
-# for i in range(n_clusters):
-#     print(f"Cluster {i} Theme:", end=" ")
-
-#     reviews = "\n".join(
-#         df[df.Cluster == i]
-#         .text.sample(rev_per_cluster, replace=True, random_state=42)
-#         .values
-#     )
-
-#     messages = [
-#         {
-#             "role": "user",
-#             "content": f'What do the following tweets have in common? Try to be as specific as possible.\n\nUser tweets:\n"""\n{reviews}\n"""\n\nTheme:',
-#         }
-#     ]
-
-#     response = client.chat.completions.create(
-#         model="gpt-4",
-#         messages=messages,
-#         temperature=0,
-#         max_tokens=64,
-#         top_p=1,
-#         frequency_penalty=0,
-#         presence_penalty=0,
-#     )
-#     print(response.choices[0].message.content.replace("\n", ""))
-
-#     sample_cluster_rows = df[df.Cluster == i].sample(
-#         rev_per_cluster, replace=True, random_state=42
-#     )
-#     for j in range(rev_per_cluster):
-#         print(sample_cluster_rows.text.str[:70].values[j])
-
-#     print("-" * 100)
 
 
 def latest_index() -> int:
@@ -101,7 +62,9 @@ if __name__ == "__main__":
         print(f"Wrote {DATA_FOLDER}/{now}.csv with {len(df)} casts.")
         timestamp = now
     else:
-        print(f"Loading data from {timestamp}.csv ({now - timestamp}s ago).")
+        print(
+            f"Loading data from {DATA_FOLDER}/{timestamp}.csv ({now - timestamp}s ago)."
+        )
         df = pd.read_csv(f"{DATA_FOLDER}/{timestamp}.csv")
 
     # Embed the casts and group them into clusters
@@ -112,3 +75,41 @@ if __name__ == "__main__":
         print(f"Wrote embeddings to {DATA_FOLDER}/{timestamp}.csv.")
 
     print(df.head())
+
+    # Categorizing the clusters into events
+    rev_per_cluster = 10
+
+    for i in range(CLUSTERS):
+        print(f"Cluster {i} Theme:", end=" ")
+
+        reviews = "\n".join(
+            df[df.cluster == i]
+            .text.sample(rev_per_cluster, replace=True, random_state=42)
+            .values
+        )
+
+        messages = [
+            {
+                "role": "user",
+                "content": f'What do the following tweets have in common? Try to be as specific as possible.\n\nUser tweets:\n"""\n{reviews}\n"""\n\nTheme:',
+            }
+        ]
+
+        response = client.chat.completions.create(
+            model="gpt-4",
+            messages=messages,
+            temperature=0,
+            max_tokens=64,
+            top_p=1,
+            frequency_penalty=0,
+            presence_penalty=0,
+        )
+        print(response.choices[0].message.content.replace("\n", ""))
+
+        sample_cluster_rows = df[df.cluster == i].sample(
+            rev_per_cluster, replace=True, random_state=42
+        )
+        for j in range(rev_per_cluster):
+            print(sample_cluster_rows.text.str[:70].values[j])
+
+        print("-" * 100)
