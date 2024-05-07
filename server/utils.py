@@ -42,6 +42,6 @@ def fetch_casts(days: int) -> list[tuple]:
 
 def casts_df(casts: list[tuple]) -> pd.DataFrame:
     return pd.DataFrame(
-        [(bytes(c[7]).hex(), c[5], c[3], c[12]) for c in casts],
-        columns=["hash", "fid", "timestamp", "text"],
+        [(c[0], bytes(c[7]).hex(), c[5], c[3], c[12]) for c in casts],
+        columns=["id", "hash", "fid", "timestamp", "text"],
     )
