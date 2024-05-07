@@ -7,8 +7,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-conn = psycopg2.connect(os.environ.get("PSYCOPG_URL"))
-
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 model = EmbeddingModel(log_enabled=False)
 
@@ -28,6 +26,7 @@ def vlite_embed(text: str) -> list[float]:
 
 
 def fetch_casts(days: int) -> list[tuple]:
+    conn = psycopg2.connect(os.environ.get("PSYCOPG_URL"))
     cur = conn.cursor()
 
     cur.execute(

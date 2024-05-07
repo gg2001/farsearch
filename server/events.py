@@ -9,24 +9,27 @@ from utils import client, vlite_embed, fetch_casts, casts_df
 
 FETCH_DAYS = 14  # How far back we want to index the casts
 CLUSTERS = 10  # How many clusters to group the casts into
-KMEANS_RANDOM_STATE = 42  # Random state for reproducibility
+SAMPLE_PER_CLUSTER = 10  # The number of casts to sample per cluster
+RANDOM_STATE = 42  # Random state for reproducibility
 REFRESH_INTERVAL = 24 * (60 * 60)  # How often to refresh the index in seconds
 DATA_FOLDER = "data"  # Folder to store the indexed data
 
 
 def embed_casts(df: pd.DataFrame):
-    # Embed all texts in the DataFrame
-    df = df[df["text"].notnull()]
-    df["embedding"] = df["text"].apply(vlite_embed)
+    # Filter out rows where text is null and directly modify the DataFrame
+    df.dropna(subset=["text"], inplace=True)
+
+    # Apply embedding to the 'text' column and store it in a new 'embedding' column
+    df.loc[:, "embedding"] = df["text"].apply(vlite_embed)
 
     # Fit the embeddings to a K-Means model and group the casts into clusters
-    kmeans = KMeans(
-        n_clusters=CLUSTERS, init="k-means++", random_state=KMEANS_RANDOM_STATE
-    )
-    matrix = np.vstack(df.embedding.values)
+    kmeans = KMeans(n_clusters=CLUSTERS, init="k-means++", random_state=RANDOM_STATE)
+    matrix = np.vstack(df["embedding"].values)
     kmeans.fit(matrix)
     labels = kmeans.labels_
-    df["cluster"] = labels
+
+    # Assign cluster labels to the 'cluster' column
+    df.loc[:, "cluster"] = labels
 
 
 def latest_index() -> int:
@@ -76,16 +79,15 @@ if __name__ == "__main__":
 
     print(df.head())
 
-    # Categorizing the clusters into events
-    rev_per_cluster = 10
-
     for i in range(CLUSTERS):
         print(f"Cluster {i} Theme:", end=" ")
 
+        cluster_df = df[df.cluster == i]
+        sample_size = min(len(cluster_df), SAMPLE_PER_CLUSTER)
         reviews = "\n".join(
-            df[df.cluster == i]
-            .text.sample(rev_per_cluster, replace=True, random_state=42)
-            .values
+            cluster_df.text.sample(
+                sample_size, replace=False, random_state=RANDOM_STATE
+            ).values
         )
 
         messages = [
@@ -107,9 +109,9 @@ if __name__ == "__main__":
         print(response.choices[0].message.content.replace("\n", ""))
 
         sample_cluster_rows = df[df.cluster == i].sample(
-            rev_per_cluster, replace=True, random_state=42
+            SAMPLE_PER_CLUSTER, replace=True, random_state=42
         )
-        for j in range(rev_per_cluster):
+        for j in range(SAMPLE_PER_CLUSTER):
             print(sample_cluster_rows.text.str[:70].values[j])
 
         print("-" * 100)
