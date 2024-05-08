@@ -3,6 +3,12 @@ import { getClusters } from "@/app/lib/data";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 
+const images: Record<number, string> = {
+	1: "https://imagedelivery.net/BXluQx4ige9GuW0Ia56BHw/b5233fe1-1724-4f7a-abfb-93d88e278600/original",
+	7: "https://imagedelivery.net/BXluQx4ige9GuW0Ia56BHw/250980bd-752a-4300-523e-b8271e029100/original",
+	25: "https://imagedelivery.net/BXluQx4ige9GuW0Ia56BHw/36d2a3aa-8c3d-4e93-ef75-c3a0fb67b200/original",
+};
+
 export default async function Home() {
 	const data = await getClusters();
 
@@ -27,6 +33,7 @@ export default async function Home() {
 										: ""
 								}
 								category={cluster.category}
+								image={images[cluster.cluster]}
 							/>
 						</Link>
 					))}

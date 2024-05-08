@@ -3,7 +3,11 @@ import asyncio
 import pandas as pd
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from events import latest_index, load_index, load_clusters
+from events import (
+    latest_index,
+    load_index,
+    load_clusters,
+)
 from utils import HUB_URL
 
 CAST_LIMIT = 20  # Max amount of casts to return
@@ -22,6 +26,29 @@ timestamp = latest_index()
 df = load_index(timestamp)
 clusters_df = load_clusters()
 
+
+async def fetch_cast_data(session, fid, hash):
+    async with session.get(f"{HUB_URL}/v1/castById?fid={fid}&hash={hash}") as response:
+        if response.status == 200:
+            return await response.json()
+        else:
+            return {}
+
+
+async def fetch_user_data(session, fid):
+    async with session.get(f"{HUB_URL}/v1/userNameProofsByFid?fid={fid}") as response:
+        if response.status == 200:
+            data = await response.json()
+            if (
+                data is not None
+                and data["proofs"] is not None
+                and len(data["proofs"]) > 0
+            ):
+                return data["proofs"][0]
+        return {}
+
+
+# Cache data
 for cluster_id in df["cluster"].unique():
     # Convert 'timestamp' to datetime if it's not already
     timestamps = pd.to_datetime(df[df["cluster"] == cluster_id]["timestamp"])
@@ -45,29 +72,6 @@ async def read_cluster(cluster_id: int, start: int = 0):
         start : start + CAST_LIMIT
     ]
     casts = filtered_cluster_df.to_dict(orient="records")
-
-    async def fetch_cast_data(session, fid, hash):
-        async with session.get(
-            f"{HUB_URL}/v1/castById?fid={fid}&hash={hash}"
-        ) as response:
-            if response.status == 200:
-                return await response.json()
-            else:
-                return {}
-
-    async def fetch_user_data(session, fid):
-        async with session.get(
-            f"{HUB_URL}/v1/userNameProofsByFid?fid={fid}"
-        ) as response:
-            if response.status == 200:
-                data = await response.json()
-                if (
-                    data is not None
-                    and data["proofs"] is not None
-                    and len(data["proofs"]) > 0
-                ):
-                    return data["proofs"][0]
-            return {}
 
     async def fetch_all_casts():
         async with aiohttp.ClientSession() as session:
