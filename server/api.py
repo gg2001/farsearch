@@ -44,21 +44,49 @@ async def read_cluster(cluster_id: int, start: int = 0):
             if response.status == 200:
                 return await response.json()
             else:
-                return None
+                return {}
+
+    async def fetch_user_data(session, fid):
+        async with session.get(
+            f"{HUB_URL}/v1/userNameProofsByFid?fid={fid}"
+        ) as response:
+            if response.status == 200:
+                data = await response.json()
+                if (
+                    data is not None
+                    and data["proofs"] is not None
+                    and len(data["proofs"]) > 0
+                ):
+                    return data["proofs"][0]
+            return {}
 
     async def fetch_all_casts():
         async with aiohttp.ClientSession() as session:
-            tasks = [
+            cast_tasks = [
                 fetch_cast_data(session, row["fid"], row["hash"])
-                for index, row in filtered_cluster_df.iterrows()
+                for _, row in filtered_cluster_df.iterrows()
             ]
-            results = await asyncio.gather(*tasks, return_exceptions=True)
-            return results  # This maintains the order of tasks as they were initiated
+            user_tasks = [
+                fetch_user_data(session, row["fid"])
+                for _, row in filtered_cluster_df.iterrows()
+            ]
+            cast_results = await asyncio.gather(*cast_tasks, return_exceptions=True)
+            user_results = await asyncio.gather(*user_tasks, return_exceptions=True)
+            # Check if any of the results is an exception and return an empty list if so
+            if any(isinstance(result, Exception) for result in cast_results) or any(
+                isinstance(result, Exception) for result in user_results
+            ):
+                return [], []
+            return (
+                cast_results,
+                user_results,
+            )  # This maintains the order of tasks as they were initiated
 
-    casts_data = await fetch_all_casts()
+    casts_data, users_data = await fetch_all_casts()
 
     return {
         "cluster": cluster.to_dict(orient="records")[0] if not cluster.empty else {},
         "casts": casts,
         "casts_data": casts_data,
+        "users_data": users_data,
     }

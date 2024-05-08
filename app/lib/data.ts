@@ -39,17 +39,44 @@ export async function getProofs(fid: number): Promise<ProofsContainer> {
 	return res.json();
 }
 
+export interface Casts {
+	cluster?: Cluster;
+	casts: Cast[];
+	casts_data: CastData[];
+	users_data: UserData[];
+}
+
 export interface Cast {
 	hash: string;
 	fid: number;
 	timestamp: string;
 	text: string;
-	username?: string;
 }
 
-export interface Casts {
-	cluster?: Cluster;
-	casts: Cast[];
+interface CastData {
+	type: string;
+	fid: number;
+	timestamp: number;
+	network: string;
+	castAddBody: {
+		parentUrl?: string;
+		text: string;
+		embeds?: { url: string }[];
+	};
+	hash: string;
+	hashScheme: string;
+	signature: string;
+	signatureScheme: string;
+	signer: string;
+}
+
+interface UserData {
+	timestamp: number;
+	name: string;
+	owner: string;
+	signature: string;
+	fid: number;
+	type: string;
 }
 
 export async function getCasts(id: string, start: number): Promise<Casts> {

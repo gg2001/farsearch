@@ -11,7 +11,7 @@ export default async function Page({ params }: { params: { id: string } }) {
 					<h2 className="text-xl text-white font-bold">Explore</h2>
 				</div>
 
-				<CastList initialCasts={data?.casts} clusterId={params.id} />
+				<CastList initialCasts={data} clusterId={params.id} />
 			</div>
 		</main>
 	);
