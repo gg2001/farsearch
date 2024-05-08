@@ -1,5 +1,6 @@
 import Event from "@/components/event";
 import { getClusters } from "@/app/lib/data";
+import Link from "next/link";
 
 export default async function Home() {
 	const data = await getClusters();
@@ -13,13 +14,14 @@ export default async function Home() {
 
 				<div>
 					{data.map((cluster) => (
-						<Event
-							key={cluster.cluster}
-							title={cluster.summary}
-							description={cluster.headline}
-							time="2 hours ago"
-							category="Technology"
-						/>
+						<Link key={cluster.cluster} href={`/cluster/${cluster.cluster}`}>
+							<Event
+								title={cluster.summary}
+								description={cluster.headline}
+								time="2 hours ago"
+								category="Technology"
+							/>
+						</Link>
 					))}
 				</div>
 			</div>
