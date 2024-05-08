@@ -1,6 +1,7 @@
 import Event from "@/components/event";
 import { getClusters } from "@/app/lib/data";
 import Link from "next/link";
+import { formatDistanceToNow } from "date-fns";
 
 export default async function Home() {
 	const data = await getClusters();
@@ -18,8 +19,14 @@ export default async function Home() {
 							<Event
 								title={cluster.summary}
 								description={cluster.headline}
-								time="2 hours ago"
-								category="Technology"
+								time={
+									cluster.median_timestamp
+										? formatDistanceToNow(new Date(cluster.median_timestamp), {
+												addSuffix: true,
+										  })
+										: ""
+								}
+								category={cluster.category}
 							/>
 						</Link>
 					))}

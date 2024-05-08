@@ -1,14 +1,9 @@
 import { getCasts } from "@/app/lib/data";
 import BackButton from "@/components/back";
 import CastList from "@/components/casts";
-import { redirect } from "next/navigation";
 
 export default async function Page({ params }: { params: { id: string } }) {
 	const data = await getCasts(params.id, 0);
-
-	const handleGoBack = () => {
-		redirect("..");
-	};
 
 	return (
 		<main className="flex min-h-screen flex-col items-center justify-between">

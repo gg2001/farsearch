@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Casts, getCasts } from "@/app/lib/data";
 import Link from "next/link";
+import { formatDistanceToNow } from "date-fns";
 
 type CastListProps = {
 	initialCasts: Casts;
@@ -42,6 +43,20 @@ export default function CastList({ initialCasts, clusterId }: CastListProps) {
 
 	return (
 		<div className="text-white">
+			<div className="px-4 pt-4 text-xl font-bold">
+				{casts?.cluster?.summary.replace(/^"|"$/g, "")}
+			</div>
+			<div className="px-4 py-2 text-gray text-sm">
+				{initialCasts?.cluster?.median_timestamp
+					? formatDistanceToNow(
+							new Date(initialCasts.cluster.median_timestamp),
+							{
+								addSuffix: true,
+							},
+					  )
+					: ""}
+			</div>
+			<div className="px-4 pb-4 text-md">{casts?.cluster?.headline}</div>
 			{casts?.casts?.map((cast, index) =>
 				cast.hash && casts?.users_data?.[index]?.name ? (
 					<Link

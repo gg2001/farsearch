@@ -1,5 +1,6 @@
 import aiohttp
 import asyncio
+import pandas as pd
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from events import latest_index, load_index, load_clusters
@@ -20,6 +21,14 @@ app.add_middleware(
 timestamp = latest_index()
 df = load_index(timestamp)
 clusters_df = load_clusters()
+
+for cluster_id in df["cluster"].unique():
+    # Convert 'timestamp' to datetime if it's not already
+    timestamps = pd.to_datetime(df[df["cluster"] == cluster_id]["timestamp"])
+    median_timestamp = timestamps.median()
+    clusters_df.loc[
+        clusters_df["cluster"] == cluster_id, "median_timestamp"
+    ] = median_timestamp
 
 
 @app.get("/clusters/")

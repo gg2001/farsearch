@@ -4,6 +4,8 @@ export interface Cluster {
 	cluster: number;
 	summary: string;
 	headline: string;
+	category: string;
+	median_timestamp: string;
 }
 
 export async function getClusters(): Promise<Cluster[]> {
