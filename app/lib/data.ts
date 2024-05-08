@@ -1,3 +1,5 @@
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
+
 export interface Cluster {
 	cluster: number;
 	summary: string;
@@ -5,32 +7,8 @@ export interface Cluster {
 }
 
 export async function getClusters(): Promise<Cluster[]> {
-	const res = await fetch("http://127.0.0.1:8000/clusters/");
-
-	if (!res.ok) {
-		throw new Error("Failed to fetch data");
-	}
-
-	return res.json();
-}
-
-interface Proof {
-	timestamp: number;
-	name: string;
-	owner: string;
-	signature: string;
-	fid: number;
-	type: string;
-}
-
-interface ProofsContainer {
-	proofs: Proof[];
-}
-
-export async function getProofs(fid: number): Promise<ProofsContainer> {
-	const res = await fetch(
-		`http://143.198.229.42:2281/v1/userNameProofsByFid?fid=${fid}`,
-	);
+	console.log(`${API_URL}/clusters/`);
+	const res = await fetch(`${API_URL}/clusters/`);
 
 	if (!res.ok) {
 		throw new Error("Failed to fetch data");
@@ -80,7 +58,7 @@ interface UserData {
 }
 
 export async function getCasts(id: string, start: number): Promise<Casts> {
-	const res = await fetch(`http://127.0.0.1:8000/cluster/${id}?start=${start}`);
+	const res = await fetch(`${API_URL}/cluster/${id}?start=${start}`);
 
 	if (!res.ok) {
 		throw new Error("Failed to fetch data");
