@@ -1,6 +1,5 @@
-import { FarcasterEmbed } from "react-farcaster-embed";
-import "react-farcaster-embed/dist/styles.css";
 import { getCasts } from "@/app/lib/data";
+import CastList from "@/components/casts";
 
 export default async function Page({ params }: { params: { id: string } }) {
 	const data = await getCasts(params.id, 0);
@@ -12,11 +11,7 @@ export default async function Page({ params }: { params: { id: string } }) {
 					<h2 className="text-xl text-white font-bold">Explore</h2>
 				</div>
 
-				<div className="text-white">
-					{data.map((cast) => (
-						<FarcasterEmbed key={cast.hash} username="dwr" hash="0x48d47343" />
-					))}
-				</div>
+				<CastList initialCasts={data?.casts} clusterId={params.id} />
 			</div>
 		</main>
 	);
