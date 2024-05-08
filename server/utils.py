@@ -7,6 +7,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+HUB_URL = os.environ.get("HUB_URL")
+
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 model = EmbeddingModel(log_enabled=False)
 
