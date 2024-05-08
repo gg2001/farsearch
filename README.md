@@ -1,1 +1,1 @@
-# Farsearch
+# [Farsearch](https://farsearch.vercel.app/)
